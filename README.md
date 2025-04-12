@@ -31,9 +31,15 @@
 
 ##  Overview
 
-**_QueryFlow_** is a lightweight and user-friendly transpiler designed to simplify working with data.
-
+**_A CFG Dynamic Engine for DSL code generation_** It is a lightweight and user-friendly transpiler designed to simplify working with data.
 It helps users manage, execute, and visualize queries efficiently, making it easier to gain insights from various data sources using SQL Syntax.
+Abstract.
+Purpose – This research introduces a novel ETL engine designed to streamline and unify data integration processes. By employing a declarative SQL-like language, the engine empowers users to express complex data transformations without the need for intricate procedural coding. The engine dynamically generates domain-specific logic (DSL) in Python code based on user-defined queries, ensuring efficient data extraction, transformation, and loading from diverse sources. The proposed engine interface inherits the simplicity of the SQL and Language-integrated query (LINQ) frameworks. It provides a powerful abstraction for processing in-memory data collections, enabling developers to express queries declaratively. Given the widespread popularity of large language models (LLMs), but they may not be trained using specific vocabulary, which leads to unsatisfactory results. Therefore, data scientists still need to generate code according to Domain-Specific Logic (DSL). (Abejide Ade-Ibijola and George Obaido. 2017) The use of CFG (context free grammar) as a core module in the engine facilitates easy customization and integration with various ETL tools and libraries. More importantly, the engine's reliance on CFG provides a powerful mechanism for programmers to incorporate domain-specific logic and extend the engine's functionality to address unique data processing challenges.
+Methodology – The proposed engine encompasses a dynamic core that can be extended or modified at runtime. It borrows some concepts from the automata theory and tools of compilers construction. CFG production rules are embedded as a loosely coupled module in the core of the engine. It uses the famous compilers’ tools LEX and YAAC for scanning and parsing a given query using CFG rules. 
+Findings – Benchmark results demonstrate the engine's superior performance compared to existing ETL solutions, particularly when handling various data formats. The SQL-like interface provides a consistent programming paradigm for data engineers, fostering easier adoption and increased productivity. The engine's ability to handle large-scale datasets and complex transformations makes it well-suited for demanding data integration scenarios. Moreover, Benchmarking of PETL and Panadas libraries show that operations against CSV, SQLite and JSON are relatively faster than the famous relational database management system; MS-SQL Server. Interestingly in contrast to other data-sources, JSON takes more time for reading than time for writing operations, due to its recursive nature. Generally, Pandas proved superior to PETL in performance.
+Originality/value – Programmers and experienced data engineers can extend and modify the ETL functionalities and specify customized behavior at runtime by modifying the CFG based core of the engine. More data sources can easily be integrated.
+
+Keywords Dynamic, Python, code generation, ETL, In-memory data collections, compilers, LINQ, CFG , LEX, YAAC, modular architecture, DSL, LLMs, benchmarks.
 
 ---
 
