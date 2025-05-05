@@ -2,7 +2,7 @@
     <img src=".assets/Logo.png" align="center" width="50%">
 </p>
 <p align="center">
-  <a href="https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/fix/optimization/LICENSE"><img src="https://img.shields.io/github/license/FCI-Suez-2021-2025/QueryFlow?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license"></a>
+  <a href="https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/fix/optimization/LICENSE"><img src="https://img.shields.io/github/license/FCI-Suez-2021-2025/QueryFlow?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license"></a>
 	<img src="https://img.shields.io/github/last-commit/FCI-Suez-2021-2025/QueryFlow?style=default&logo=git&logoColor=white&color=0080ff" alt="last-commit">
 	<img src="https://img.shields.io/github/languages/top/FCI-Suez-2021-2025/QueryFlow?style=default&color=0080ff" alt="repo-top-language">
 	<img src="https://img.shields.io/github/languages/count/FCI-Suez-2021-2025/QueryFlow?style=default&color=0080ff" alt="repo-language-count">
@@ -136,10 +136,10 @@ Keywords Dynamic, Python, code generation, ETL, In-memory data collections, comp
 		<blockquote>
 			<table>
 			<tr>
-				<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/main.py'>main.py</a></b></td>
+				<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/main.py'>main.py</a></b></td>
 			</tr>
 			<tr>
-				<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/requirements.txt'>requirements.txt</a></b></td>
+				<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/requirements.txt'>requirements.txt</a></b></td>
 			</tr>
 			</table>
 		</blockquote>
@@ -149,7 +149,7 @@ Keywords Dynamic, Python, code generation, ETL, In-memory data collections, comp
 		<blockquote>
 			<table>
 			<tr>
-				<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/utility.py'>utility.py</a></b></td>
+				<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/utility.py'>utility.py</a></b></td>
 			</tr>
 			</table>
 			<details>
@@ -157,10 +157,10 @@ Keywords Dynamic, Python, code generation, ETL, In-memory data collections, comp
 				<blockquote>
 					<table>
 					<tr>
-						<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/core/errors.py'>errors.py</a></b></td>
+						<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/core/errors.py'>errors.py</a></b></td>
 					</tr>
 					<tr>
-						<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/core/result_monad.py'>result_monad.py</a></b></td>
+						<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/core/result_monad.py'>result_monad.py</a></b></td>
 					</tr>
 					</table>
 				</blockquote>
@@ -170,13 +170,13 @@ Keywords Dynamic, Python, code generation, ETL, In-memory data collections, comp
 				<blockquote>
 					<table>
 					<tr>
-						<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/etl/controllers.py'>controllers.py</a></b></td>
+						<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/etl/controllers.py'>controllers.py</a></b></td>
 					</tr>
 					<tr>
-						<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/etl/helpers.py'>helpers.py</a></b></td>
+						<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/etl/helpers.py'>helpers.py</a></b></td>
 					</tr>
 					<tr>
-						<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/etl/core.py'>core.py</a></b></td>
+						<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/etl/core.py'>core.py</a></b></td>
 					</tr>
 					</table>
 				</blockquote>
@@ -186,28 +186,28 @@ Keywords Dynamic, Python, code generation, ETL, In-memory data collections, comp
 				<blockquote>
 					<table>
 					<tr>
-						<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/cv/video_reader.py'>video_reader.py</a></b></td>
+						<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/cv/video_reader.py'>video_reader.py</a></b></td>
 					</tr>
 					<tr>
-						<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/cv/details_extractor.py'>details_extractor.py</a></b></td>
+						<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/cv/details_extractor.py'>details_extractor.py</a></b></td>
 					</tr>
 					<tr>
-						<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/cv/detector.py'>detector.py</a></b></td>
+						<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/cv/detector.py'>detector.py</a></b></td>
 					</tr>
 					<tr>
-						<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/cv/operation_main.py'>operation_main.py</a></b></td>
+						<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/cv/operation_main.py'>operation_main.py</a></b></td>
 					</tr>
 					<tr>
-						<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/cv/threading_main.py'>threading_main.py</a></b></td>
+						<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/cv/threading_main.py'>threading_main.py</a></b></td>
 					</tr>
 					<tr>
-						<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/cv/bird_move.py'>bird_move.py</a></b></td>
+						<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/cv/bird_move.py'>bird_move.py</a></b></td>
 					</tr>
 					<tr>
-						<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/cv/bird.py'>bird.py</a></b></td>
+						<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/cv/bird.py'>bird.py</a></b></td>
 					</tr>
 					<tr>
-						<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/cv/folder_reader.py'>folder_reader.py</a></b></td>
+						<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/cv/folder_reader.py'>folder_reader.py</a></b></td>
 					</tr>
 					</table>
 				</blockquote>
@@ -217,7 +217,7 @@ Keywords Dynamic, Python, code generation, ETL, In-memory data collections, comp
 				<blockquote>
 					<table>
 					<tr>
-						<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/gui/ui_compiler.py'>ui_compiler.py</a></b></td>
+						<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/gui/ui_compiler.py'>ui_compiler.py</a></b></td>
 					</tr>
 					</table>
 					<details>
@@ -225,10 +225,10 @@ Keywords Dynamic, Python, code generation, ETL, In-memory data collections, comp
 						<blockquote>
 							<table>
 							<tr>
-								<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/gui/error_frame/error_details_popup.py'>error_details_popup.py</a></b></td>
+								<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/gui/error_frame/error_details_popup.py'>error_details_popup.py</a></b></td>
 							</tr>
 							<tr>
-								<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/gui/error_frame/error_frame.py'>error_frame.py</a></b></td>
+								<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/gui/error_frame/error_frame.py'>error_frame.py</a></b></td>
 							</tr>
 							</table>
 						</blockquote>
@@ -238,10 +238,10 @@ Keywords Dynamic, Python, code generation, ETL, In-memory data collections, comp
 						<blockquote>
 							<table>
 							<tr>
-								<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/gui/results_frame/python_frame.py'>python_frame.py</a></b></td>
+								<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/gui/results_frame/python_frame.py'>python_frame.py</a></b></td>
 							</tr>
 							<tr>
-								<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/gui/results_frame/results_frame.py'>results_frame.py</a></b></td>
+								<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/gui/results_frame/results_frame.py'>results_frame.py</a></b></td>
 							</tr>
 							</table>
 							<details>
@@ -249,16 +249,16 @@ Keywords Dynamic, Python, code generation, ETL, In-memory data collections, comp
 								<blockquote>
 									<table>
 									<tr>
-										<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/gui/results_frame/table_result_frame/visualization.py'>visualization.py</a></b></td>
+										<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/gui/results_frame/table_result_frame/visualization.py'>visualization.py</a></b></td>
 									</tr>
 									<tr>
-										<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/gui/results_frame/table_result_frame/table_widget.py'>table_widget.py</a></b></td>
+										<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/gui/results_frame/table_result_frame/table_widget.py'>table_widget.py</a></b></td>
 									</tr>
 									<tr>
-										<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/gui/results_frame/table_result_frame/table_frame.py'>table_frame.py</a></b></td>
+										<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/gui/results_frame/table_result_frame/table_frame.py'>table_frame.py</a></b></td>
 									</tr>
 									<tr>
-										<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/gui/results_frame/table_result_frame/multi_selection_dropdown.py'>multi_selection_dropdown.py</a></b></td>
+										<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/gui/results_frame/table_result_frame/multi_selection_dropdown.py'>multi_selection_dropdown.py</a></b></td>
 									</tr>
 									</table>
 								</blockquote>
@@ -270,16 +270,16 @@ Keywords Dynamic, Python, code generation, ETL, In-memory data collections, comp
 						<blockquote>
 							<table>
 							<tr>
-								<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/gui/vertical_tab_view/tab_button.py'>tab_button.py</a></b></td>
+								<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/gui/vertical_tab_view/tab_button.py'>tab_button.py</a></b></td>
 							</tr>
 							<tr>
-								<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/gui/vertical_tab_view/vertical_tab_view.py'>vertical_tab_view.py</a></b></td>
+								<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/gui/vertical_tab_view/vertical_tab_view.py'>vertical_tab_view.py</a></b></td>
 							</tr>
 							<tr>
-								<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/gui/vertical_tab_view/content_frame.py'>content_frame.py</a></b></td>
+								<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/gui/vertical_tab_view/content_frame.py'>content_frame.py</a></b></td>
 							</tr>
 							<tr>
-								<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/gui/vertical_tab_view/sql_textbox_colorizer.py'>sql_textbox_colorizer.py</a></b></td>
+								<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/gui/vertical_tab_view/sql_textbox_colorizer.py'>sql_textbox_colorizer.py</a></b></td>
 							</tr>
 							</table>
 						</blockquote>
@@ -291,13 +291,13 @@ Keywords Dynamic, Python, code generation, ETL, In-memory data collections, comp
 				<blockquote>
 					<table>
 					<tr>
-						<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/compiler/lex.py'>lex.py</a></b></td>
+						<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/compiler/lex.py'>lex.py</a></b></td>
 					</tr>
 					<tr>
-						<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/compiler/yacc.py'>yacc.py</a></b></td>
+						<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/compiler/yacc.py'>yacc.py</a></b></td>
 					</tr>
 					<tr>
-						<td><b><a href='https://github.com/FCI-Suez-2021-2025/QueryFlow/blob/master/app/compiler/ast_nodes.py'>ast_nodes.py</a></b></td>
+						<td><b><a href='https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation/blob/master/app/compiler/ast_nodes.py'>ast_nodes.py</a></b></td>
 					</tr>
 					</table>
 				</blockquote>
@@ -321,7 +321,7 @@ Before getting started with QueryFlow, ensure your runtime environment meets the
 
 1. Clone the QueryFlow repository:
 ```sh
-❯ git clone https://github.com/FCI-Suez-2021-2025/QueryFlow
+❯ git clone https://github.com/hussiensharaf/A-CFG-Dynamic-Engine-for-dynamic-DSL-code-generation
 ```
 
 2. Navigate to the project directory:
