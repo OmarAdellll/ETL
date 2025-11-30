@@ -26,6 +26,14 @@ reserved = [
     "UPDATE",
     "SET",
     "DELETE",
+    "JOIN",
+    "ON",
+    "LEFT",
+    "RIGHT",
+    "FULL",
+    "OUTER",
+    "AS",
+    "INNER",
 ]
 tokens = [
     "FLOATNUMBER",
@@ -50,6 +58,7 @@ tokens = [
     "SMALLER",
     "SIMICOLON",
     "COMMA",
+    "DOT",
     "STRING",
     "PATTERN",
     "AGGREGATION_FUNCTION",
@@ -71,6 +80,7 @@ t_SMALLER_EQUAL = r"<="
 t_SMALLER = r"<"
 t_SIMICOLON = r";"
 t_COMMA = r","
+t_DOT = r"\."
 
 # ignored characters
 t_ignore = " \t"  # Spaces and tabs
@@ -227,6 +237,39 @@ def t_TAIL(t):
     t.value = t.value.lower()
     return t
 
+@TOKEN(r"join")
+def t_JOIN(t):
+    return t
+
+@TOKEN(r"on")
+def t_ON(t):
+    return t
+@TOKEN(r"left")
+def t_LEFT(t):
+    return t
+
+@TOKEN(r"right")
+def t_RIGHT(t):
+    return t
+
+@TOKEN(r"full")
+def t_FULL(t):
+    return t
+
+@TOKEN(r"outer")
+def t_OUTER(t):
+    return t
+
+@TOKEN(r"as")
+def t_AS(t):
+    return t
+
+@TOKEN(r"inner")
+def t_INNER(t):
+    return t
+
+
+
 
 # endregion
 
@@ -280,7 +323,7 @@ def t_POSITIVE_INTNUMBER(t):
 # endregion
 
 
-@TOKEN(r"\{[^,{}\[]+\}")
+@TOKEN(r"\{[^{}]+\}")
 def t_DATASOURCE(t):
     t.value = str(t.value[1:-1])
     return t

@@ -35,48 +35,235 @@ def p_error(p):
     )
 
 
-# else:
-#         raise ParserError("Syntax error at EOF")
-
-
 ###########################
-# ==== SELECT STATEMENT​​ ====
+# ==== SELECT STATEMENT WITH ADVANCED JOIN ====
 ###########################
-
-
 def p_select(p):
-    """select : SELECT distinct select_columns into_statement FROM DATASOURCE where group order limit_or_tail SIMICOLON"""
-    if type(p[3]) == str:
-        p[3] = "'" + p[3] + "'"
+    """select : SELECT distinct select_columns into_statement FROM table_source join_clauses where group order limit_or_tail SIMICOLON"""
+    
+    # ---- أعمدة الــ SELECT ----
+    if isinstance(p[3], str):
+        p[3] = f"'{p[3]}'"
 
-    file_type, file_path = p[6].split(":", 1)
+    # ---- الداتا سورس الأساسي ----
+    main_table = p[6]  # {'datasource': 'csv:file.csv', 'alias': 't1' or None}
+    
+    # ---- Parse main datasource ----
+    main_ds = main_table['datasource']
+    main_alias = main_table.get('alias')
+    file_type, file_path = main_ds.split(":", 1)
+
+    # ---- INTO ----
+    load_type = None
+    load_path = None
     if p[4]:
         load_type, load_path = p[4].split(":", 1)
+
+    load_call = ""
+    if load_type and load_path:
+        load_call = f"etl.load(transformed_data, '{load_type}', '{load_path}')"
+
+    # ---- Extract main data ----
+    extract_code = f"extracted_data = etl.extract('{file_type}', '{file_path}')\n"
+    
+    # ---- Store alias mapping ----
+    alias_mapping = {}
+    if main_alias:
+        alias_mapping[main_alias] = 'extracted_data'
+
+    # ---- JOIN CODE (multiple joins supported) ----
+    join_clauses = p[7]  # List of join operations
+    join_code = ""
+    
+    if join_clauses:
+        for idx, join_clause in enumerate(join_clauses):
+            join_type = join_clause['type']  # 'inner', 'left', 'right', 'full'
+            join_ds = join_clause['datasource']
+            join_alias = join_clause.get('alias')
+            on_condition = join_clause['on']
+            
+            # Parse join datasource
+            j_type, j_path = join_ds.split(":", 1)
+            
+            # Generate unique variable name for each join
+            join_var = f"join_df_{idx}"
+            
+            # Extract join table
+            join_code += f"{join_var} = etl.extract('{j_type}', '{j_path}')\n"
+            
+            # Store alias if exists
+            if join_alias:
+                alias_mapping[join_alias] = join_var
+            
+            # Perform join
+            join_code += f"extracted_data = etl.join(\n"
+            join_code += f"    extracted_data,\n"
+            join_code += f"    {join_var},\n"
+            join_code += f"    '{on_condition['left']}',\n"
+            join_code += f"    '{on_condition['right']}',\n"
+            join_code += f"    how='{join_type}'\n"
+            join_code += f")\n"
+
+    # ---- WHERE, GROUP, ORDER, LIMIT ----
+    where_clause = p[8]
+    group_clause = p[9]
+    order_clause = p[10]
+    limit_clause = p[11]
+
+    # ---- الكود النهائي ----
     p[0] = (
         "from app import etl\n"
         "from app.compiler.ast_nodes import *\n\n"
-        f"extracted_data = etl.extract('{file_type}','{file_path}')\n"
+        f"{extract_code}"
+        f"{join_code}"  # JOIN happens here, BEFORE transform
         f"transformed_data = etl.transform_select(\n"
-        f"   extracted_data,\n"
-        f"   {{\n"
-        f"        'COLUMNS':  {p[3]},\n"
+        f"    extracted_data,\n"
+        f"    {{\n"
+        f"        'COLUMNS': {p[3]},\n"
         f"        'DISTINCT': {p[2]},\n"
-        f"        'FILTER':   {p[7]},\n"
-        f"        'GROUP':    {p[8]},\n"
-        f"        'ORDER':    {p[9]},\n"
-        f"        'LIMIT_OR_TAIL':    {p[10]},\n"
+        f"        'FILTER': {where_clause},\n"
+        f"        'GROUP': {group_clause},\n"
+        f"        'ORDER': {order_clause},\n"
+        f"        'LIMIT_OR_TAIL': {limit_clause},\n"
         f"    }}\n"
         f")\n"
-        f""
-        f"{f"etl.load(transformed_data,'{load_type}','{load_path}')" if p[4] else "" }\n"
+        f"{load_call}\n"
     )
+
+
+###########################
+# ==== TABLE SOURCE (with optional alias) ====
+###########################
+def p_table_source_with_alias(p):
+    """table_source : DATASOURCE AS SIMPLE_COLNAME"""
+    p[0] = {
+        'datasource': p[1],
+        'alias': p[3]
+    }
+
+
+def p_table_source_no_alias(p):
+    """table_source : DATASOURCE"""
+    p[0] = {
+        'datasource': p[1],
+        'alias': None
+    }
+
+
+###########################
+# ==== JOIN CLAUSES (support multiple joins) ====
+###########################
+def p_join_clauses(p):
+    """join_clauses : join_clauses join_clause"""
+    p[0] = p[1]
+    p[0].append(p[2])
+
+
+def p_join_clauses_single(p):
+    """join_clauses : join_clause"""
+    p[0] = [p[1]]
+
+
+def p_join_clauses_empty(p):
+    """join_clauses : empty"""
+    p[0] = None
+
+
+###########################
+# ==== SINGLE JOIN CLAUSE ====
+###########################
+def p_join_clause(p):
+    """join_clause : join_type table_source on_statement"""
+    p[0] = {
+        'type': p[1],
+        'datasource': p[2]['datasource'],
+        'alias': p[2].get('alias'),
+        'on': p[3]
+    }
+
+
+###########################
+# ==== JOIN TYPES ====
+###########################
+def p_join_type_inner(p):
+    """join_type : JOIN
+                 | INNER JOIN"""
+    p[0] = 'inner'
+
+
+def p_join_type_left(p):
+    """join_type : LEFT JOIN
+                 | LEFT OUTER JOIN"""
+    p[0] = 'left'
+
+
+def p_join_type_right(p):
+    """join_type : RIGHT JOIN
+                 | RIGHT OUTER JOIN"""
+    p[0] = 'right'
+
+
+def p_join_type_full(p):
+    """join_type : FULL JOIN
+                 | FULL OUTER JOIN"""
+    p[0] = 'outer'  # pandas uses 'outer' for FULL JOIN
+
+
+
+###########################
+# ==== ON STATEMENT (with complex conditions) ====
+###########################
+def p_on_statement(p):
+    """on_statement : ON on_conditions"""
+    p[0] = p[2]
+
+
+def p_on_conditions_complex(p):
+    """on_conditions : on_conditions AND on_conditions
+                     | on_conditions OR on_conditions"""
+    # For now, we'll support single condition
+    # Complex conditions would need more sophisticated handling
+    p[0] = {
+        'operator': p[2],
+        'left': p[1],
+        'right': p[3]
+    }
+
+
+def p_on_conditions_base(p):
+    """on_conditions : qualified_column EQUAL qualified_column"""
+    p[0] = {
+        'left': p[1],
+        'right': p[3]
+    }
+
+
+###########################
+# ==== QUALIFIED COLUMN (table.column or column) ====
+###########################
+def p_qualified_column_with_table(p):
+    """qualified_column : SIMPLE_COLNAME DOT SIMPLE_COLNAME
+                        | SIMPLE_COLNAME DOT BRACKETED_COLNAME"""
+    # table.column format
+    p[0] = f"{p[1]}.{p[3]}"
+
+
+def p_qualified_column_no_table(p):
+    """qualified_column : column"""
+    p[0] = p[1]
+
+
+###########################
+# ==== DOT token (we need to add this) ====
+###########################
+# NOTE: You need to add DOT token to lex.py:
+# t_DOT = r"\."
+# And add "DOT" to tokens list
 
 
 ###########################
 # ==== INSERT STATEMENT ====
 ###########################
-
-
 def p_insert(p):
     "insert : INSERT INTO DATASOURCE icolumn VALUES insert_values SIMICOLON"
 
@@ -103,8 +290,6 @@ def p_update(p):
 ###########################
 # ==== DELETE STATEMENT​​ ====
 ###########################
-
-
 def p_delete(p):
     "delete : DELETE FROM DATASOURCE where"
     p[0] = None
@@ -113,8 +298,6 @@ def p_delete(p):
 ##########################
 # ====== COMPARISON =======
 ##########################
-
-
 def p_logical(p):
     """logical :  EQUAL
     | NOTEQUAL
@@ -128,8 +311,6 @@ def p_logical(p):
 ##########################
 # ====== WHERE CLAUSE =====
 ##########################
-
-
 def p_where(p):
     "where : WHERE conditions"
     p[0] = p[2]
@@ -161,18 +342,15 @@ def p_conditions_not(p):
 ##########################
 # ========== EXP ==========
 ##########################
-
-
 def p_exp(p):
     """exp : column
     | STRING
     | NUMBER"""
-
     p[0] = p[1]
 
 
 ##########################
-# ========== EXP ==========
+# ========== NUMBER ==========
 ##########################
 def p_NUMBER(p):
     """NUMBER : NEGATIVE_INTNUMBER
@@ -184,8 +362,6 @@ def p_NUMBER(p):
 ###########################
 # ======== Distinct ========
 ###########################
-
-
 def p_distinct(p):
     """distinct : DISTINCT"""
     p[0] = True
@@ -238,8 +414,6 @@ def p_aggregation_function(p):
 ###########################
 # ===== SELECT COLUMNS​​ =====
 ###########################
-
-
 def p_select_columns_all(p):
     "select_columns : TIMES"
     p[0] = "__all__"
@@ -253,8 +427,6 @@ def p_select_columns(p):
 ###########################
 # ========= Into ===========
 ###########################
-
-
 def p_into_statement(p):
     "into_statement : INTO DATASOURCE"
     p[0] = p[2]
@@ -288,16 +460,13 @@ def p_simple_column_name(p):
 def p_bracketed_column_name(p):
     """bracketed_column_name : BRACKETED_COLNAME"""
     token = str(p[1])
-    # to remove the scare brackets token[1:-1]
     p[0] = ColumnNameNode(token[1:-1])
 
 
 def p_column_index(p):
     """column_index : COLNUMBER"""
     token = str(p[1])
-    # to remove the scare brackets token[1:-1] and cast the str to int
     index = int(token[1:-1])
-
     p[0] = ColumnIndexNode(index=index)
 
 
@@ -363,8 +532,6 @@ def p_way_desc(p):
 ###########################
 # ========= Limit & Tail ==========
 ###########################
-
-
 def p_limit_or_tail(p):
     """limit_or_tail : LIMIT POSITIVE_INTNUMBER
     | TAIL POSITIVE_INTNUMBER"""
@@ -379,12 +546,9 @@ def p_limit_or_tail_empty(p):
 ###########################
 # ========= VALUES​ =========
 ###########################
-
-
 def p_value(p):
     """value : STRING
     | NUMBER"""
-
     p[0] = p[1]
 
 
@@ -398,8 +562,6 @@ def p_values(p):
 ###########################
 # ===== INSERT VALUES​ ======
 ###########################
-
-
 def p_values_end(p):
     "values : value"
     p[0] = [p[1]]
@@ -425,8 +587,6 @@ def p_insert_values_end(p):
 ###########################
 # ===== Insert Columns​​ =====
 ###########################
-
-
 def p_icolumn(p):
     "icolumn : LPAREN icolumns RPAREN"
     p[0] = p[2]
@@ -452,8 +612,6 @@ def p_icolumns_base(p):
 ###########################
 # ==== ASSIGNS STATEMENT​​ ===
 ###########################
-
-
 def p_assign(p):
     "assign : column EQUAL value"
     p[0] = (p[1], p[3])
