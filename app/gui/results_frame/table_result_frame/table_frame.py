@@ -1,9 +1,10 @@
-from typing import Any, Tuple
+from typing import Any, Tuple, Optional, Dict
 import customtkinter as ctk
 from pandas import DataFrame
 
 from app.gui.results_frame.table_result_frame.table_widget import TableWidget
 from app.gui.results_frame.table_result_frame.visualization import visualize
+from app.gui.results_frame.table_result_frame.map_visualization import MapVisualizationWindow
 
 
 class TableResultFrame(ctk.CTkFrame):
@@ -40,19 +41,44 @@ class TableResultFrame(ctk.CTkFrame):
             text="Table",
         )
         self.table = TableWidget(self)
+        
+        # Button frame for visualization buttons
+        self.button_frame = ctk.CTkFrame(self, fg_color="transparent")
+        
         # Add "Show Visualization" button
         self.visualize_button = ctk.CTkButton(
-            self,
+            self.button_frame,
             text="Show Visualization",
-            command=lambda: visualize(self, self.get_table()),  # No functionality yet
+            command=lambda: visualize(self, self.get_table()),
             width=150,
         )
-        # self.data_frame_textbox.configure(state="disabled")  # Make read-only
+        
+        # Add "Show on Map" button with enhanced styling
+        self.map_button = ctk.CTkButton(
+            self.button_frame,
+            text="🗺️ Show on Map",
+            command=self.show_map,
+            width=150,
+            fg_color="#2B7A0B",
+            hover_color="#1f5a08"
+        )
+        
+        # Store GEE metadata
+        self.gee_metadata: Optional[Dict] = None
+        
         self.table_theme = ""
         self.label.pack(pady=5)
         self.table.pack(fill="both", expand=True, padx=5)
         self.table.pack_propagate(False)
-        self.visualize_button.pack(pady=5)
+        
+        # Pack buttons side by side
+        self.button_frame.pack(pady=5)
+        self.visualize_button.pack(side="left", padx=5)
+        self.map_button.pack(side="left", padx=5)
+        
+        # Initially hide the map button (will show only for GEE queries)
+        self.map_button.pack_forget()
+        
         if ctk.get_appearance_mode().lower() == "dark":
             self.change_table_theme("dark")
         else:
@@ -66,6 +92,27 @@ class TableResultFrame(ctk.CTkFrame):
 
     def clear_table(self) -> None:
         self.table.reset_data()
+        # Clear GEE metadata when table is cleared
+        self.gee_metadata = None
+        # Hide map button when table is cleared
+        self.map_button.pack_forget()
+
+    def set_gee_metadata(self, metadata: Optional[Dict]) -> None:
+        """Store Google Earth Engine query metadata and show/hide map button"""
+        self.gee_metadata = metadata
+        
+        # Show map button only if we have GEE metadata
+        if metadata is not None:
+            # Show the map button
+            self.map_button.pack(side="left", padx=5)
+        else:
+            # Hide the map button for non-GEE queries
+            self.map_button.pack_forget()
+    
+    def show_map(self):
+        """Open enhanced map visualization window with data"""
+        # Pass both metadata and actual data to the map window
+        MapVisualizationWindow(self, self.gee_metadata, self.get_table())
 
     def change_table_theme(self, theme: str) -> None:
         self.table_theme = theme

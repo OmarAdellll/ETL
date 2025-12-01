@@ -1,6 +1,7 @@
 import sqlparse
 from typing import Any, Tuple
 import customtkinter as ctk
+import re
 
 
 from app.core.result_monad import Success
@@ -46,6 +47,9 @@ class TabContent(ctk.CTkFrame):
             self.change_sql_textbox_theme("dark")
         else:
             self.sql_textbox_theme = "light"
+        
+        # Store the last executed SQL query
+        self.last_sql_query = ""
 
     def add_children_widget(self):
         self.sql_textbox = ctk.CTkTextbox(
@@ -92,8 +96,33 @@ class TabContent(ctk.CTkFrame):
         self.error_section.pack(fill="x", pady=5, padx=10)
         self.error_section.pack_propagate(False)
 
+    def extract_gee_metadata(self, sql_query: str):
+        """
+        Extract Google Earth Engine metadata from SQL query.
+        Format: {gee:project|start_date|end_date|longitude|latitude|scale}
+        """
+        try:
+            # Pattern to match GEE query format
+            pattern = r'\{gee:([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^}]+)\}'
+            match = re.search(pattern, sql_query)
+            
+            if match:
+                metadata = {
+                    'project': match.group(1),
+                    'start_date': match.group(2),
+                    'end_date': match.group(3),
+                    'longitude': float(match.group(4)),
+                    'latitude': float(match.group(5)),
+                    'scale': float(match.group(6))
+                }
+                return metadata
+            return None
+        except Exception as e:
+            print(f"Error extracting GEE metadata: {e}")
+            return None
+
     def execute_python(self):
-        # Fetch SQL code from the text box
+        # Fetch Python code from the text box
         python_code = self.results_section.python_section.code_textbox.get(
             "1.0", "end-1c"
         ).strip()
@@ -102,12 +131,18 @@ class TabContent(ctk.CTkFrame):
             self.results_section.table_section.clear_table()
             self.error_section.clear_error()
             return
+        
         execution_result = execute_python_code(python_code)
+        
         if isinstance(execution_result, Success):
             # Execution succeeded; display Python code and DataFrame results
             data_frame = execution_result.unwrap()
             self.results_section.table_section.set_table(data_frame)
             self.error_section.clear_error()
+            
+            # Extract and store GEE metadata if this was a GEE query
+            gee_metadata = self.extract_gee_metadata(self.last_sql_query)
+            self.results_section.table_section.set_gee_metadata(gee_metadata)
         else:
             # Execution failed; display Python code and error in DataFrame section
             execution_error = execution_result.unwrap_error()
@@ -119,6 +154,10 @@ class TabContent(ctk.CTkFrame):
         # Fetch SQL code from the text box
         sql_query = self.sql_textbox.get("1.0", "end-1c").strip()
         sql_query = sqlparse.format(sql_query, reindent=True, strip_whitespace=True)
+        
+        # Store the SQL query for later use
+        self.last_sql_query = sql_query
+        
         # Delete all content
         self.sql_textbox.delete("1.0", "end")
         # Insert text at the beginning (index "1.0")
