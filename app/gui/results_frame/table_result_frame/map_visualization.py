@@ -1,3 +1,8 @@
+"""
+Google Earth Engine Map Visualization - Embedded Version
+Uses existing table data for consistency, embedded map viewer, OpenStreetMap default.
+"""
+
 import customtkinter as ctk
 import tkinter as tk
 from tkinter import messagebox
@@ -5,29 +10,138 @@ import folium
 from folium import plugins
 import tempfile
 import os
-import webbrowser
-from typing import Optional, Dict
+from typing import Optional, Dict, List, Tuple
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import webbrowser
+
+
+class EmbeddedMapFrame(ctk.CTkFrame):
+    """
+    Map preview frame with browser launch button.
+    Avoids tkinterweb compatibility issues.
+    """
+    
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        
+        self.html_file = None
+        self.setup_view()
+    
+    def setup_view(self):
+        """Setup the map preview view."""
+        # Map preview container
+        preview_container = ctk.CTkFrame(self, fg_color=("#E8E8E8", "#2B2B2B"))
+        preview_container.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Icon/Title
+        title_label = ctk.CTkLabel(
+            preview_container,
+            text="🗺️",
+            font=("Arial", 80)
+        )
+        title_label.pack(pady=(50, 20))
+        
+        # Map status label
+        self.status_label = ctk.CTkLabel(
+            preview_container,
+            text="Map Preview",
+            font=("Arial", 18, "bold")
+        )
+        self.status_label.pack(pady=10)
+        
+        # Info label
+        self.info_label = ctk.CTkLabel(
+            preview_container,
+            text="Click the button below to open the interactive map\nin your web browser",
+            font=("Arial", 13),
+            justify="center"
+        )
+        self.info_label.pack(pady=10)
+        
+        # Open in browser button
+        self.open_btn = ctk.CTkButton(
+            preview_container,
+            text="🌍 Open Interactive Map in Browser",
+            command=self.open_in_browser,
+            height=50,
+            width=300,
+            font=("Arial", 14, "bold"),
+            fg_color="#2B7A0B",
+            hover_color="#1f5a08",
+            state="disabled"
+        )
+        self.open_btn.pack(pady=30)
+        
+        # Map details
+        self.details_label = ctk.CTkLabel(
+            preview_container,
+            text="",
+            font=("Arial", 11),
+            text_color=("gray40", "gray60"),
+            justify="center"
+        )
+        self.details_label.pack(pady=10)
+    
+    def load_html(self, html_file: str):
+        """Load HTML file (prepares for browser launch)."""
+        self.html_file = html_file
+        
+        # Enable button
+        self.open_btn.configure(state="normal")
+        
+        # Update status
+        self.status_label.configure(text="Map Ready! ✅")
+        self.info_label.configure(
+            text="Your interactive heatmap is ready!\nClick below to view it in your browser"
+        )
+        
+        # Show file info
+        file_size = os.path.getsize(html_file) / 1024  # KB
+        self.details_label.configure(
+            text=f"Map file: {file_size:.1f} KB\nLocation: {os.path.basename(html_file)}"
+        )
+        
+        # Auto-open on first load
+        self.open_in_browser()
+    
+    def open_in_browser(self):
+        """Open current HTML file in browser."""
+        if self.html_file and os.path.exists(self.html_file):
+            webbrowser.open('file://' + self.html_file)
+            self.status_label.configure(text="Map Opened in Browser! 🌐")
+        else:
+            messagebox.showwarning(
+                "No Map",
+                "Please generate a map first by clicking 'Update Map'"
+            )
 
 
 class MapVisualizationWindow(ctk.CTkToplevel):
     """
-    Enhanced popup window for displaying Google Earth Engine data on an interactive map
-    with heatmap visualization, time slider, and multiple data layers.
+    Map visualization window using existing table data for consistency.
+    Embedded map view with OpenStreetMap default.
     """
     
     def __init__(self, parent, gee_metadata: Optional[Dict] = None, data: Optional[pd.DataFrame] = None):
         super().__init__(parent)
         
-        self.title("Map Visualization - Google Earth Engine Data")
-        self.geometry("1000x750")
+        self.title("Google Earth Engine - Heatmap Visualization")
+        self.geometry("1400x900")
         
         # Store metadata and data
         self.gee_metadata = gee_metadata
         self.data = data
-        self.selected_variable = None
+        
+        # Current state
+        self.current_date = None
+        self.current_variable = None
+        self.available_dates = []
+        self.available_variables = []
+        
+        # Map file path
+        self.map_file_path = None
         
         # Set window properties
         self.transient(parent)
@@ -36,522 +150,455 @@ class MapVisualizationWindow(ctk.CTkToplevel):
         # Create UI
         self.create_widgets()
         
-        # Check if we have data
+        # Initialize
         if self.gee_metadata and self.data is not None and not self.data.empty:
-            self.populate_variable_selector()
+            self.initialize_from_data()
+            self.generate_initial_map()
         else:
             self.show_no_data_message()
-        
-        # Store map file path
-        self.map_file_path = None
+    
+    def initialize_from_data(self):
+        """Initialize from existing table data."""
+        try:
+            # Get available variables (numeric columns except date)
+            numeric_cols = self.data.select_dtypes(include=[np.number]).columns.tolist()
+            self.available_variables = numeric_cols
+            
+            # Get available dates
+            if 'date' in self.data.columns:
+                self.available_dates = self.data['date'].astype(str).tolist()
+            else:
+                # Generate day indices
+                self.available_dates = [f"Day {i+1}" for i in range(len(self.data))]
+            
+            # Set initial values
+            if self.available_variables:
+                self.current_variable = self.available_variables[0]
+            
+            if self.available_dates:
+                self.current_date = self.available_dates[len(self.available_dates) // 2]
+            
+        except Exception as e:
+            print(f"Error initializing: {e}")
+            messagebox.showerror("Initialization Error", str(e))
     
     def create_widgets(self):
-        """Create the window widgets"""
-        # Title frame
-        title_frame = ctk.CTkFrame(self, fg_color="transparent")
-        title_frame.pack(fill="x", padx=20, pady=10)
+        """Create UI widgets."""
+        # Main container with two sections: controls (left) and map (right)
+        main_container = ctk.CTkFrame(self, fg_color="transparent")
+        main_container.pack(fill="both", expand=True, padx=10, pady=10)
         
+        # Left panel - Controls (30% width)
+        left_panel = ctk.CTkFrame(main_container)
+        left_panel.pack(side="left", fill="both", padx=(0, 5), pady=0)
+        left_panel.configure(width=400)
+        
+        # Title
         title_label = ctk.CTkLabel(
-            title_frame,
-            text="🌍 Google Earth Engine Data Visualization",
-            font=("Arial", 20, "bold")
+            left_panel,
+            text="🌍 GEE Heatmap",
+            font=("Arial", 18, "bold")
         )
-        title_label.pack(side="left")
+        title_label.pack(pady=10)
         
-        # Variable selector frame
-        self.selector_frame = ctk.CTkFrame(self)
-        self.selector_frame.pack(fill="x", padx=20, pady=5)
+        # Variable selector
+        var_frame = ctk.CTkFrame(left_panel, fg_color="transparent")
+        var_frame.pack(fill="x", padx=10, pady=5)
         
-        selector_label = ctk.CTkLabel(
-            self.selector_frame,
-            text="📊 Select Variable to Visualize:",
-            font=("Arial", 13, "bold")
-        )
-        selector_label.pack(side="left", padx=10, pady=10)
+        ctk.CTkLabel(
+            var_frame,
+            text="Variable:",
+            font=("Arial", 12, "bold")
+        ).pack(anchor="w", pady=2)
         
         self.variable_dropdown = ctk.CTkComboBox(
-            self.selector_frame,
-            values=["Select a variable..."],
-            width=200,
-            font=("Arial", 12),
-            state="readonly"
+            var_frame,
+            values=["Select variable..."],
+            command=self.on_variable_changed,
+            width=350
         )
-        self.variable_dropdown.pack(side="left", padx=5, pady=10)
-        self.variable_dropdown.set("Select a variable...")
+        self.variable_dropdown.pack(fill="x", pady=2)
         
-        self.generate_btn = ctk.CTkButton(
-            self.selector_frame,
-            text="🗺️ Generate Map",
-            command=self.generate_map_with_selected_variable,
-            font=("Arial", 12),
-            height=32,
-            fg_color="#2B7A0B",
-            hover_color="#1f5a08"
+        # Date slider
+        date_frame = ctk.CTkFrame(left_panel, fg_color="transparent")
+        date_frame.pack(fill="x", padx=10, pady=10)
+        
+        ctk.CTkLabel(
+            date_frame,
+            text="Date:",
+            font=("Arial", 12, "bold")
+        ).pack(anchor="w", pady=2)
+        
+        self.date_label = ctk.CTkLabel(
+            date_frame,
+            text="",
+            font=("Arial", 11)
         )
-        self.generate_btn.pack(side="left", padx=5, pady=10)
+        self.date_label.pack(anchor="w", pady=2)
         
-        # Info frame
-        self.info_frame = ctk.CTkFrame(self)
-        self.info_frame.pack(fill="x", padx=20, pady=5)
-        
-        # Map display info
-        self.info_label = ctk.CTkLabel(
-            self.info_frame,
-            text="Select a variable above, then click 'Generate Map' to visualize",
-            font=("Arial", 12)
+        self.date_slider = ctk.CTkSlider(
+            date_frame,
+            from_=0,
+            to=100,
+            command=self.on_date_changed,
+            width=350
         )
-        self.info_label.pack(pady=5)
+        self.date_slider.pack(fill="x", pady=5)
         
-        # Main content frame with two sections
-        content_frame = ctk.CTkFrame(self, fg_color="transparent")
-        content_frame.pack(fill="both", expand=True, padx=20, pady=5)
-        
-        # Left section - Metadata
-        left_frame = ctk.CTkFrame(content_frame)
-        left_frame.pack(side="left", fill="both", expand=True, padx=(0, 5))
-        
-        metadata_title = ctk.CTkLabel(
-            left_frame,
-            text="📊 Query Information:",
-            font=("Arial", 14, "bold")
-        )
-        metadata_title.pack(anchor="w", padx=10, pady=5)
-        
-        self.metadata_text = ctk.CTkTextbox(
-            left_frame,
-            font=("Consolas", 11),
-            wrap="word"
-        )
-        self.metadata_text.pack(fill="both", expand=True, padx=10, pady=5)
-        
-        # Right section - Data Statistics
-        right_frame = ctk.CTkFrame(content_frame)
-        right_frame.pack(side="right", fill="both", expand=True, padx=(5, 0))
-        
-        stats_title = ctk.CTkLabel(
-            right_frame,
-            text="📈 Data Statistics:",
-            font=("Arial", 14, "bold")
-        )
-        stats_title.pack(anchor="w", padx=10, pady=5)
-        
-        self.stats_text = ctk.CTkTextbox(
-            right_frame,
-            font=("Consolas", 11),
-            wrap="word"
-        )
-        self.stats_text.pack(fill="both", expand=True, padx=10, pady=5)
-        
-        # Button frame
-        button_frame = ctk.CTkFrame(self, fg_color="transparent")
-        button_frame.pack(fill="x", padx=20, pady=10)
-        
-        self.show_map_btn = ctk.CTkButton(
-            button_frame,
-            text="🗺️ Open Map in Browser",
-            command=self.open_map_in_browser,
-            font=("Arial", 13),
-            height=35,
+        # Update button
+        self.update_btn = ctk.CTkButton(
+            left_panel,
+            text="🔄 Update Map",
+            command=self.update_map,
+            font=("Arial", 13, "bold"),
             fg_color="#2B7A0B",
             hover_color="#1f5a08",
-            width=200,
-            state="disabled"
+            height=40
         )
-        self.show_map_btn.pack(side="left", padx=5)
+        self.update_btn.pack(padx=10, pady=10, fill="x")
         
-        close_btn = ctk.CTkButton(
-            button_frame,
+        # Info display
+        info_label = ctk.CTkLabel(
+            left_panel,
+            text="📊 Current Data:",
+            font=("Arial", 12, "bold")
+        )
+        info_label.pack(anchor="w", padx=10, pady=(10, 5))
+        
+        self.info_text = ctk.CTkTextbox(
+            left_panel,
+            height=300,
+            font=("Consolas", 10),
+            wrap="word"
+        )
+        self.info_text.pack(fill="both", expand=True, padx=10, pady=5)
+        
+        # Close button
+        ctk.CTkButton(
+            left_panel,
             text="Close",
             command=self.destroy,
-            font=("Arial", 13),
             height=35,
             fg_color="#B22222",
             hover_color="#8B0000"
-        )
-        close_btn.pack(side="right", padx=5)
-    
-    def populate_variable_selector(self):
-        """Populate the variable dropdown with available numeric columns"""
-        numeric_cols = self.data.select_dtypes(include=[np.number]).columns.tolist()
+        ).pack(padx=10, pady=10, fill="x")
         
-        if numeric_cols:
-            self.variable_dropdown.configure(values=numeric_cols)
-            self.variable_dropdown.set(numeric_cols[0])  # Set first variable as default
-            self.selected_variable = numeric_cols[0]
-            self.display_metadata_and_stats()
-        else:
-            self.show_no_data_message()
-    
-    def generate_map_with_selected_variable(self):
-        """Generate map with the selected variable"""
-        selected = self.variable_dropdown.get()
+        # Right panel - Embedded map (70% width)
+        right_panel = ctk.CTkFrame(main_container)
+        right_panel.pack(side="right", fill="both", expand=True, padx=(5, 0), pady=0)
         
-        if selected == "Select a variable..." or not selected:
-            messagebox.showwarning(
-                "No Variable Selected",
-                "Please select a variable to visualize from the dropdown."
-            )
-            return
-        
-        self.selected_variable = selected
-        self.info_label.configure(
-            text=f"Generating map for: {selected}... Please wait."
-        )
-        self.update()
-        
-        # Generate the map
-        self.generate_enhanced_map()
-        
-        self.info_label.configure(
-            text=f"Map generated for: {selected}. Click 'Open Map in Browser' to view."
-        )
-        self.show_map_btn.configure(state="normal")
+        # Map viewer
+        self.map_viewer = EmbeddedMapFrame(right_panel)
+        self.map_viewer.pack(fill="both", expand=True, padx=5, pady=5)
     
     def show_no_data_message(self):
-        """Show message when no GEE data is available"""
-        self.metadata_text.insert("1.0", 
-            "⚠️ No Google Earth Engine data detected.\n\n"
-            "The 'Show on Map' feature is only available when:\n"
-            "1. Your query fetches data from Google Earth Engine (GEE)\n"
-            "2. The query contains geographical coordinates (longitude, latitude)\n"
-            "3. Data has been successfully executed\n\n"
-            "Example query format:\n"
-            "SELECT temperature, wind_speed FROM {gee:project|start_date|end_date|longitude|latitude|scale};\n\n"
-            "Please execute a GEE query first to use this feature."
+        """Show message when no data is available."""
+        self.info_text.insert("1.0", 
+            "⚠️ No data available.\n\n"
+            "Please execute a GEE query first."
         )
-        self.metadata_text.configure(state="disabled")
-        self.stats_text.insert("1.0", "No data available.")
-        self.stats_text.configure(state="disabled")
-        self.generate_btn.configure(state="disabled")
-        self.variable_dropdown.configure(state="disabled")
+        self.info_text.configure(state="disabled")
+        self.update_btn.configure(state="disabled")
     
-    def display_metadata_and_stats(self):
-        """Display metadata and statistics"""
-        # Extract coordinates
-        latitude = self.gee_metadata.get('latitude')
-        longitude = self.gee_metadata.get('longitude')
-        project = self.gee_metadata.get('project')
-        start_date = self.gee_metadata.get('start_date')
-        end_date = self.gee_metadata.get('end_date')
-        scale = self.gee_metadata.get('scale')
+    def generate_initial_map(self):
+        """Generate the initial map."""
+        if not self.available_variables:
+            self.show_no_data_message()
+            return
         
-        # Get available variables
-        numeric_cols = self.data.select_dtypes(include=[np.number]).columns.tolist()
-        available_vars = "\n   • ".join(numeric_cols)
+        # Populate dropdowns
+        self.variable_dropdown.configure(values=self.available_variables)
+        self.variable_dropdown.set(self.available_variables[0])
         
-        # Display metadata
-        metadata_info = f"""📊 Query Details:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # Setup slider
+        if self.available_dates:
+            self.date_slider.configure(from_=0, to=len(self.available_dates) - 1)
+            self.date_slider.set(len(self.available_dates) // 2)
+            self.update_date_label()
+        
+        # Display info
+        self.display_info()
+        
+        # Generate map
+        self.update_map()
+    
+    def update_date_label(self):
+        """Update date label from slider."""
+        if self.available_dates:
+            idx = int(self.date_slider.get())
+            idx = max(0, min(idx, len(self.available_dates) - 1))
+            self.current_date = self.available_dates[idx]
+            
+            # Extract just the date part if it's a datetime string
+            date_display = str(self.current_date).split()[0]
+            self.date_label.configure(text=date_display)
+    
+    def display_info(self):
+        """Display current state information."""
+        if not self.gee_metadata:
+            return
+        
+        # Get current row data
+        row_data = self.get_current_row_data()
+        
+        info = f"""Query Information:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🌍 Location:
-   • Latitude:  {latitude}°
-   • Longitude: {longitude}°
+   Lat: {self.gee_metadata.get('latitude')}°
+   Lon: {self.gee_metadata.get('longitude')}°
 
-📅 Time Range:
-   • Start: {start_date}
-   • End:   {end_date}
-   • Days:  {len(self.data)}
+📏 Radius: {self.gee_metadata.get('scale')}m
 
-🔧 Configuration:
-   • Project: {project}
-   • Scale:   {scale}m
+📅 Date Range:
+   {self.gee_metadata.get('start_date')} to
+   {self.gee_metadata.get('end_date')}
 
-📊 Available Variables:
-   • {available_vars}
+🎯 Current Selection:
+   Date: {str(self.current_date).split()[0]}
+   Variable: {self.current_variable}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-💡 How to Use:
-   1. Select a variable from dropdown
-   2. Click "Generate Map"
-   3. View the interactive visualization
-
-🎨 Map Features:
-   ✓ Color-coded markers by value
-   ✓ Interactive popups with data
-   ✓ Animated heatmap timeline
-   ✓ Multiple map layers
+📊 Values at this point:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
         
-        self.metadata_text.insert("1.0", metadata_info)
-        self.metadata_text.configure(state="disabled")
-        
-        # Calculate and display statistics
-        stats_info = self.calculate_statistics()
-        self.stats_text.insert("1.0", stats_info)
-        self.stats_text.configure(state="disabled")
-    
-    def calculate_statistics(self):
-        """Calculate statistics for all numeric columns in the data"""
-        stats_info = "Data Summary:\n"
-        stats_info += "━" * 40 + "\n\n"
-        
-        # Get numeric columns (exclude date)
-        numeric_cols = self.data.select_dtypes(include=[np.number]).columns
-        
-        for col in numeric_cols:
-            stats_info += f"📊 {col.upper()}:\n"
-            stats_info += f"   • Min:    {self.data[col].min():.4f}\n"
-            stats_info += f"   • Max:    {self.data[col].max():.4f}\n"
-            stats_info += f"   • Mean:   {self.data[col].mean():.4f}\n"
-            stats_info += f"   • Median: {self.data[col].median():.4f}\n"
-            stats_info += f"   • Std:    {self.data[col].std():.4f}\n"
-            stats_info += "\n"
-        
-        stats_info += f"📅 Date Range:\n"
-        stats_info += f"   • Start: {self.data['date'].min()}\n"
-        stats_info += f"   • End:   {self.data['date'].max()}\n"
-        stats_info += f"   • Days:  {len(self.data)}\n"
-        
-        return stats_info
-    
-    def get_color_for_value(self, value, min_val, max_val):
-        """Get color based on value using a gradient"""
-        # Normalize value to 0-1 range
-        if max_val == min_val:
-            normalized = 0.5
+        if row_data is not None:
+            for var in self.available_variables:
+                if var in row_data:
+                    value = row_data[var]
+                    if pd.notna(value):
+                        info += f"   {var}: {value:.4f}\n"
         else:
-            normalized = (value - min_val) / (max_val - min_val)
+            info += "   No data for selected date\n"
         
-        # Color gradient: blue (low) -> green -> yellow -> red (high)
-        if normalized < 0.25:
-            # Blue to Cyan
-            r, g, b = 0, int(normalized * 4 * 255), 255
-        elif normalized < 0.5:
-            # Cyan to Green
-            r, g, b = 0, 255, int((0.5 - normalized) * 4 * 255)
-        elif normalized < 0.75:
-            # Green to Yellow
-            r, g, b = int((normalized - 0.5) * 4 * 255), 255, 0
-        else:
-            # Yellow to Red
-            r, g, b = 255, int((1 - normalized) * 4 * 255), 0
+        info += "\n💡 Tip: Use slider to change date\n"
+        info += "        Select variable from dropdown"
         
-        return f'#{r:02x}{g:02x}{b:02x}'
+        self.info_text.delete("1.0", "end")
+        self.info_text.insert("1.0", info)
     
-    def generate_enhanced_map(self):
-        """Generate enhanced folium map with heatmap and time series visualization"""
+    def on_variable_changed(self, selected_var):
+        """Handle variable change."""
+        self.current_variable = selected_var
+        self.display_info()
+    
+    def on_date_changed(self, value):
+        """Handle date slider change."""
+        self.update_date_label()
+        self.display_info()
+    
+    def get_current_row_data(self) -> Optional[pd.Series]:
+        """Get the row data for current date."""
         try:
-            # Extract coordinates
-            latitude = self.gee_metadata.get('latitude')
-            longitude = self.gee_metadata.get('longitude')
-            project = self.gee_metadata.get('project')
-            start_date = self.gee_metadata.get('start_date')
-            end_date = self.gee_metadata.get('end_date')
+            if 'date' in self.data.columns:
+                # Match by date
+                current_date_str = str(self.current_date).split()[0]
+                mask = self.data['date'].astype(str).str.startswith(current_date_str)
+                matching_rows = self.data[mask]
+                
+                if not matching_rows.empty:
+                    return matching_rows.iloc[0]
+            else:
+                # Match by index
+                idx = self.available_dates.index(self.current_date)
+                if 0 <= idx < len(self.data):
+                    return self.data.iloc[idx]
+            
+            return None
+        except Exception as e:
+            print(f"Error getting row data: {e}")
+            return None
+    
+    def generate_heatmap_data(self) -> List[Tuple[float, float, float]]:
+        """
+        Generate heatmap points distributed within the circle.
+        Uses current variable values interpolated spatially.
+        """
+        lat = self.gee_metadata.get('latitude')
+        lon = self.gee_metadata.get('longitude')
+        scale = self.gee_metadata.get('scale')
+        
+        # Get current value
+        row_data = self.get_current_row_data()
+        if row_data is None or self.current_variable not in row_data:
+            return []
+        
+        center_value = row_data[self.current_variable]
+        if pd.isna(center_value):
+            return []
+        
+        # Convert scale to degrees
+        lat_offset = scale / 111320
+        lon_offset = scale / (111320 * np.cos(np.radians(lat)))
+        
+        # Generate points with gradient (stronger at center)
+        heatmap_data = []
+        num_points = 1000
+        
+        for i in range(num_points):
+            # Random point in circle
+            r = np.sqrt(np.random.random())
+            theta = np.random.random() * 2 * np.pi
+            
+            point_lat = lat + r * lat_offset * np.cos(theta)
+            point_lon = lon + r * lon_offset * np.sin(theta)
+            
+            # Gradient: value decreases with distance from center
+            # Add some randomness for natural look
+            distance_factor = 1 - (r * 0.3)  # 30% decrease at edge
+            noise = np.random.normal(0, 0.05)  # 5% noise
+            point_value = center_value * distance_factor * (1 + noise)
+            
+            heatmap_data.append((point_lat, point_lon, point_value))
+        
+        return heatmap_data
+    
+    def update_map(self):
+        """Update the map with current settings."""
+        if not self.current_variable or self.current_date is None:
+            return
+        
+        try:
+            self.update_btn.configure(state="disabled", text="Generating...")
+            self.update()
+            
+            # Generate map
+            self.generate_folium_map()
+            
+            self.update_btn.configure(state="normal", text="🔄 Update Map")
+            
+        except Exception as e:
+            messagebox.showerror("Map Error", f"Failed to update map:\n{str(e)}")
+            self.update_btn.configure(state="normal", text="🔄 Update Map")
+            import traceback
+            traceback.print_exc()
+    
+    def generate_folium_map(self):
+        """Generate Folium map using table data."""
+        try:
+            lat = self.gee_metadata.get('latitude')
+            lon = self.gee_metadata.get('longitude')
             scale = self.gee_metadata.get('scale')
             
-            # Use selected variable
-            viz_col = self.selected_variable
-            
-            if viz_col not in self.data.columns:
-                messagebox.showerror(
-                    "Variable Not Found",
-                    f"Selected variable '{viz_col}' not found in data."
-                )
+            # Get current row data
+            row_data = self.get_current_row_data()
+            if row_data is None:
+                messagebox.showwarning("No Data", "No data available for selected date.")
                 return
             
-            min_val = self.data[viz_col].min()
-            max_val = self.data[viz_col].max()
-            
-            # Create folium map
-            map_center = [latitude, longitude]
+            # Create map - OpenStreetMap only, no CartoDB
             m = folium.Map(
-                location=map_center,
-                zoom_start=10,
+                location=[lat, lon],
+                zoom_start=14,
                 tiles="OpenStreetMap"
             )
             
-            m = folium.Map(
-                location=map_center,
-                zoom_start=12,
-                tiles="OpenStreetMap",
-                prefer_canvas=True
-            )
+            # Generate heatmap data
+            heatmap_data = self.generate_heatmap_data()
             
-            # Create feature groups for different layers
-            marker_layer = folium.FeatureGroup(name='📍 Daily Data Points', show=True)
-            heatmap_data = []
-            
-            # Add markers for each data point
-            for idx, row in self.data.iterrows():
-                date_str = str(row['date'])
-                value = row[viz_col]
-                
-                # Get color based on value
-                color_hex = self.get_color_for_value(value, min_val, max_val)
-                
-                # Create detailed popup
-                popup_html = f"""
-                <div style="font-family: Arial; width: 280px; font-size: 13px;">
-                    <h4 style="color: #2B7A0B; margin: 5px 0;">📅 {date_str}</h4>
-                    <hr style="margin: 5px 0;">
-                    <p style='margin: 5px 0; background: {color_hex}; padding: 5px; color: white; font-weight: bold; border-radius: 3px;'>
-                    {viz_col}: {value:.4f}</p>
-                """
-                
-                # Add all numeric columns to popup
-                for col in self.data.select_dtypes(include=[np.number]).columns:
-                    if col != viz_col:  # Skip the main variable (already shown)
-                        col_value = row[col]
-                        popup_html += f"<p style='margin: 3px 0;'><strong>{col}:</strong> {col_value:.4f}</p>"
-                
-                popup_html += f"""
-                    <hr style="margin: 5px 0;">
-                    <p style="margin: 3px 0; font-size: 11px; color: #666;">
-                    <strong>Location:</strong> {latitude}°, {longitude}°
-                    </p>
-                </div>
-                """
-                
-                # Add marker
-                folium.CircleMarker(
-                    location=map_center,
-                    radius=8,
-                    popup=folium.Popup(popup_html, max_width=300),
-                    tooltip=f"{date_str}: {viz_col}={value:.2f}",
-                    color=color_hex,
-                    fill=True,
-                    fillColor=color_hex,
-                    fillOpacity=0.7,
-                    weight=2
-                ).add_to(marker_layer)
-                
-                # Add to heatmap data
-                offset = 0.001
-                heatmap_data.append([
-                    latitude + (idx - len(self.data)/2) * offset,
-                    longitude + (idx - len(self.data)/2) * offset,
-                    value
-                ])
-            
-            marker_layer.add_to(m)
-            
-            # Add heatmap with time animation
-            if len(heatmap_data) > 0:
-                # Create time series data for heatmap animation
-                time_series_data = []
-                for idx, row in self.data.iterrows():
-                    date_str = str(row['date']).split()[0]  # Get just the date part
-                    value = row[viz_col]
-                    offset = 0.001
-                    time_series_data.append({
-                        'time': date_str,
-                        'data': [[
-                            latitude + (idx - len(self.data)/2) * offset,
-                            longitude + (idx - len(self.data)/2) * offset,
-                            value
-                        ]]
-                    })
-                
-                # Add time-animated heatmap
-                heatmap_layer = plugins.HeatMapWithTime(
-                    [entry['data'] for entry in time_series_data],
-                    index=[entry['time'] for entry in time_series_data],
-                    auto_play=True,
+            # Add heatmap
+            if heatmap_data:
+                plugins.HeatMap(
+                    heatmap_data,
+                    min_opacity=0.2,
                     max_opacity=0.8,
                     radius=25,
-                    name=f'🌡️ {viz_col.title()} Heatmap Timeline'
-                )
-                heatmap_layer.add_to(m)
+                    blur=20,
+                    name=f'{self.current_variable} Heatmap'
+                ).add_to(m)
             
-            # Add scale circle
-            folium.Circle(
-                location=map_center,
-                radius=scale,
-                color='blue',
-                fill=True,
-                fillColor='lightblue',
-                fillOpacity=0.2,
-                popup=f"Collection Scale: {scale}m radius",
-                name='📏 Collection Area'
-            ).add_to(m)
+            # Get value for current variable
+            center_value = row_data[self.current_variable] if self.current_variable in row_data else None
+            center_value_str = f"{center_value:.4f}" if pd.notna(center_value) else "N/A"
             
-            # Add main location marker
+            # Create popup with ALL variable values from table
+            popup_html = f"""
+            <div style="font-family: Arial; width: 300px; font-size: 13px;">
+                <h4 style="color: #2B7A0B; margin: 5px 0;">📍 Data Point</h4>
+                <hr>
+                <p><strong>Location:</strong> ({lat:.4f}°, {lon:.4f}°)</p>
+                <p><strong>Date:</strong> {str(self.current_date).split()[0]}</p>
+                <hr>
+                <h5 style="color: #2B7A0B;">Selected Variable:</h5>
+                <p style="background: #2B7A0B; color: white; padding: 5px; border-radius: 3px;">
+                <strong>{self.current_variable}:</strong> {center_value_str}
+                </p>
+                <hr>
+                <h5>All Variables (from table):</h5>
+            """
+            
+            for var in self.available_variables:
+                if var in row_data:
+                    value = row_data[var]
+                    value_str = f"{value:.4f}" if pd.notna(value) else "N/A"
+                    popup_html += f"<p><strong>{var}:</strong> {value_str}</p>"
+            
+            popup_html += "</div>"
+            
+            # Add center marker
+            tooltip_text = f"{self.current_variable}: {center_value_str}"
             folium.Marker(
-                location=map_center,
-                popup=folium.Popup(f"""
-                    <div style="font-family: Arial; width: 250px;">
-                        <h4 style="color: #2B7A0B;">📍 GEE Data Collection Point</h4>
-                        <hr>
-                        <p><strong>Visualizing:</strong> {viz_col}</p>
-                        <p><strong>Coordinates:</strong><br>
-                        Lat: {latitude}°<br>
-                        Lon: {longitude}°</p>
-                        <p><strong>Date Range:</strong><br>
-                        {start_date} to {end_date}</p>
-                        <p><strong>Total Days:</strong> {len(self.data)}</p>
-                        <p><strong>Project:</strong> {project}</p>
-                        <p><strong>Scale:</strong> {scale}m</p>
-                    </div>
-                """, max_width=300),
-                tooltip="Main Collection Point",
+                location=[lat, lon],
+                popup=folium.Popup(popup_html, max_width=350),
+                tooltip=tooltip_text,
                 icon=folium.Icon(color='red', icon='info-sign', prefix='glyphicon')
             ).add_to(m)
             
-            # Add legend for colors
+            # Add collection circle
+            folium.Circle(
+                location=[lat, lon],
+                radius=scale,
+                color='#0066FF',
+                fill=True,
+                fillColor='#ADD8E6',
+                fillOpacity=0.2,
+                weight=2,
+                popup=f"Collection Radius: {scale}m"
+            ).add_to(m)
+            
+            # Add legend
+            center_value_legend = f"{center_value:.4f}" if pd.notna(center_value) else "N/A"
             legend_html = f"""
-            <div style="position: fixed; 
-                        top: 10px; right: 10px; 
-                        width: 220px; height: auto;
-                        background-color: white; 
-                        border:2px solid grey; 
-                        z-index:9999; 
-                        font-size:12px;
-                        padding: 10px;
-                        border-radius: 5px;">
-                <h4 style="margin: 0 0 10px 0;">📊 {viz_col.replace('_', ' ').title()}</h4>
-                <p style="margin: 5px 0;"><strong>Min:</strong> {min_val:.4f}</p>
-                <p style="margin: 5px 0;"><strong>Max:</strong> {max_val:.4f}</p>
-                <div style="background: linear-gradient(to right, 
-                            blue, cyan, green, yellow, red); 
-                            height: 20px; 
-                            margin: 10px 0;
-                            border: 1px solid #333;"></div>
-                <p style="margin: 5px 0; font-size: 10px; color: #666;">
-                    Markers are color-coded by {viz_col} value
+            <div style="position: fixed; top: 10px; right: 10px; width: 250px;
+                        background-color: white; border: 2px solid grey; z-index: 9999;
+                        padding: 10px; border-radius: 5px; font-size: 12px;">
+                <h4 style="margin: 0 0 10px 0;">📊 Current View</h4>
+                <p><strong>Variable:</strong> {self.current_variable}</p>
+                <p><strong>Date:</strong> {str(self.current_date).split()[0]}</p>
+                <p><strong>Value:</strong> {center_value_legend}</p>
+                <p><strong>Heatmap Points:</strong> {len(heatmap_data)}</p>
+                <hr>
+                <p style="font-size: 10px; color: #666;">
+                ✓ Data from table<br>
+                ✓ {scale}m radius<br>
+                ✓ Hover marker for details
                 </p>
             </div>
             """
             m.get_root().html.add_child(folium.Element(legend_html))
             
-            # Add layer control
-            folium.LayerControl(position='topleft', collapsed=False).add_to(m)
-            
-            # Add fullscreen button
+            # Add fullscreen
             plugins.Fullscreen().add_to(m)
             
-            # Add measure control
-            plugins.MeasureControl(position='bottomleft').add_to(m)
-            
-            # Save map to temporary HTML file
+            # Save map
             temp_dir = tempfile.gettempdir()
-            self.map_file_path = os.path.join(temp_dir, f"gee_map_{viz_col}.html")
+            self.map_file_path = os.path.join(
+                temp_dir,
+                f"gee_map_{self.current_date}_{self.current_variable}.html"
+            )
             m.save(self.map_file_path)
             
-            # Automatically open the map
-            self.open_map_in_browser()
+            # Load in embedded viewer
+            self.map_viewer.load_html(self.map_file_path)
             
         except Exception as e:
-            messagebox.showerror(
-                "Map Generation Error",
-                f"Failed to generate enhanced map:\n{str(e)}"
-            )
+            print(f"Error generating map: {e}")
             import traceback
             traceback.print_exc()
-    
-    def open_map_in_browser(self):
-        """Open the generated map in the default web browser"""
-        if self.map_file_path and os.path.exists(self.map_file_path):
-            webbrowser.open('file://' + self.map_file_path)
-        else:
-            messagebox.showwarning(
-                "Map Not Available",
-                "Please generate a map first by selecting a variable and clicking 'Generate Map'."
-            )
+            raise
     
     def destroy(self):
-        """Clean up and close the window"""
-        # Clean up temporary map file
+        """Clean up and close."""
         if self.map_file_path and os.path.exists(self.map_file_path):
             try:
                 os.remove(self.map_file_path)

@@ -56,7 +56,7 @@ class TableResultFrame(ctk.CTkFrame):
         # Add "Show on Map" button with enhanced styling
         self.map_button = ctk.CTkButton(
             self.button_frame,
-            text="🗺️ Show on Map",
+            text="Show on Map",
             command=self.show_map,
             width=150,
             fg_color="#2B7A0B",
