@@ -40,10 +40,6 @@ def p_error(p):
 ###########################
 def p_select(p):
     """select : SELECT distinct select_columns into_statement FROM table_source join_clauses where group order limit_or_tail SIMICOLON"""
-    
-    # ---- أعمدة الــ SELECT ----
-    if isinstance(p[3], str):
-        p[3] = f"'{p[3]}'"
 
     # ---- الداتا سورس الأساسي ----
     main_table = p[6]  # {'datasource': 'csv:file.csv', 'alias': 't1' or None}
@@ -96,11 +92,15 @@ def p_select(p):
                 alias_mapping[join_alias] = join_var
             
             # Perform join
+            # Extract column names without alias (A.col → col)
+            left_col = on_condition['left'].split('.', 1)[-1]
+            right_col = on_condition['right'].split('.', 1)[-1]
+
             join_code += f"extracted_data = etl.join(\n"
             join_code += f"    extracted_data,\n"
             join_code += f"    {join_var},\n"
-            join_code += f"    '{on_condition['left']}',\n"
-            join_code += f"    '{on_condition['right']}',\n"
+            join_code += f"    '{left_col}',\n"
+            join_code += f"    '{right_col}',\n"
             join_code += f"    how='{join_type}'\n"
             join_code += f")\n"
 
@@ -109,6 +109,43 @@ def p_select(p):
     group_clause = p[9]
     order_clause = p[10]
     limit_clause = p[11]
+
+    # ==== Normalize SELECT columns based on alias -> real DataFrame columns ====
+
+    # Build alias → suffix map (for pandas merge)
+    alias_suffix = {}
+
+    # main SELECT table always gets "_left"
+    if main_alias:
+        alias_suffix[main_alias] = "_left"
+
+    # join tables get "_right" (for now supporting one join)
+    if join_clauses:
+        for jc in join_clauses:
+            if jc['alias']:
+                alias_suffix[jc['alias']] = "_right"
+
+    def normalize_column(col):
+        # Column is something like "A.firstname"
+        if isinstance(col, str) and "." in col:
+            alias, name = col.split(".", 1)
+
+            # If this column is a join key, pandas left it unsuffixed
+            for jc in (join_clauses or []):
+                if jc['on']['left'].endswith("." + name) or jc['on']['right'].endswith("." + name):
+                    return name  # join key → no suffix
+
+            # Otherwise: normal alias-based suffix
+            suffix = alias_suffix.get(alias, "")
+            return f"{name}{suffix}"
+
+        return col
+
+
+    if p[3] != "__all__":
+        p[3] = [normalize_column(c) for c in p[3]]
+
+
 
     # ---- الكود النهائي ----
     p[0] = (
@@ -119,7 +156,7 @@ def p_select(p):
         f"transformed_data = etl.transform_select(\n"
         f"    extracted_data,\n"
         f"    {{\n"
-        f"        'COLUMNS': {p[3]},\n"
+        f"        'COLUMNS': {repr(p[3]) if isinstance(p[3], str) else p[3]},\n"
         f"        'DISTINCT': {p[2]},\n"
         f"        'FILTER': {where_clause},\n"
         f"        'GROUP': {group_clause},\n"
@@ -348,6 +385,10 @@ def p_exp(p):
     | NUMBER"""
     p[0] = p[1]
 
+def p_exp_qualified(p):
+    "exp : qualified_column"
+    p[0] = p[1]
+
 
 ##########################
 # ========== NUMBER ==========
@@ -391,6 +432,14 @@ def p_columns(p):
     p[0].extend(p[1])
     p[0].extend(p[3])
 
+def p_column_qualified(p):
+    "column : SIMPLE_COLNAME DOT SIMPLE_COLNAME"
+    p[0] = f"{p[1]}.{p[3]}"
+
+def p_column_qualified_bracket(p):
+    "column : SIMPLE_COLNAME DOT BRACKETED_COLNAME"
+    token = str(p[3])
+    p[0] = f"{p[1]}.{token[1:-1]}"
 
 def p_columns_base(p):
     """columns : column
@@ -409,6 +458,8 @@ def p_aggregation_function(p):
             -1,
             -1,
         )
+
+
 
 
 ###########################
