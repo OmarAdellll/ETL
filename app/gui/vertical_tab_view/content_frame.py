@@ -2,6 +2,7 @@ import sqlparse
 import os
 import sys
 import threading
+import re
 
 
 # Add AI Assistant to path
@@ -142,31 +143,34 @@ class TabContent(ctk.CTkFrame):
         self.error_section.pack(fill="x", pady=5, padx=10)
         self.error_section.pack_propagate(False)
 
-    def extract_gee_metadata(self, sql_query: str):
-        """
-        Extract Google Earth Engine metadata from SQL query.
-        NEW FORMAT: {project|start_date|end_date|longitude|latitude|scale|dataset}
-        """
+
+
+    def extract_gee_metadata(self, sql: str):
+        if not sql:
+            return None
+
+        pattern = re.compile(
+            r'\{gee:([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^}]+)\}',
+            re.IGNORECASE
+        )
+
+        match = pattern.search(sql)
+        if not match:
+            return None
+
         try:
-            # Pattern: project|start|end|lon|lat|scale|dataset
-            pattern = r'\{([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^}]+)\}'
-            match = re.search(pattern, sql_query)
-            
-            if match:
-                metadata = {
-                    'project': match.group(1),           # Field 1: project
-                    'start_date': match.group(2),        # Field 2: start_date
-                    'end_date': match.group(3),          # Field 3: end_date
-                    'longitude': float(match.group(4)),  # Field 4: longitude
-                    'latitude': float(match.group(5)),   # Field 5: latitude
-                    'scale': float(match.group(6)),      # Field 6: scale
-                    'dataset': match.group(7)            # Field 7: dataset (LAST)
-                }
-                return metadata
-            return None
+            return {
+                "project": match.group(1),
+                "start_date": match.group(2),
+                "end_date": match.group(3),
+                "longitude": float(match.group(4)),
+                "latitude": float(match.group(5)),
+                "scale": float(match.group(6)),
+            }
         except Exception as e:
-            print(f"Error extracting GEE metadata: {e}")
+            print("GEE metadata parse error:", e)
             return None
+
 
     def execute_python(self):
         # Fetch Python code from the text box
@@ -189,7 +193,9 @@ class TabContent(ctk.CTkFrame):
             
             # Extract and store GEE metadata if this was a GEE query
             gee_metadata = self.extract_gee_metadata(self.last_sql_query)
+            print("DEBUG GEE METADATA:", gee_metadata)
             self.results_section.table_section.set_gee_metadata(gee_metadata)
+            
         else:
             # Execution failed; display Python code and error in DataFrame section
             execution_error = execution_result.unwrap_error()
