@@ -5,12 +5,10 @@ import threading
 
 
 # Add AI Assistant to path
-ai_feature_path = os.path.join(os.getcwd(), "AI-Assisstance Feature")
-if os.path.exists(ai_feature_path) and ai_feature_path not in sys.path:
-    sys.path.append(ai_feature_path)
+from ai_assistant.GEEQueryAssistant import GEEQueryAssistant
 
 try:
-    from GEEQueryAssistant import GEEQueryAssistant
+    from ai_assistant.GEEQueryAssistant import GEEQueryAssistant
 except ImportError:
     GEEQueryAssistant = None
 
@@ -26,6 +24,11 @@ from app.gui.error_frame.error_frame import ErrorFrame
 from app.gui.results_frame.results_frame import ResultsFrame
 from app.gui.vertical_tab_view.sql_textbox_colorizer import Colorizer
 from app.gui.vertical_tab_view.input_dialog import SQLGeneratorDialog
+
+# استيراد مكونات Autocomplete
+from app.etl.autoComplete.autocomplete_engine import AutocompleteEngine
+from app.etl.autoComplete.autocomplete_widget import AutocompleteTextbox
+from app.etl.autoComplete.metadat_provider import MetadataProvider
 
 
 class TabContent(ctk.CTkFrame):
@@ -56,6 +59,11 @@ class TabContent(ctk.CTkFrame):
             overwrite_preferred_drawing_method,
             **kwargs,
         )
+        
+        # تهيئة Autocomplete قبل إضافة الويدجتس
+        self.metadata_provider = MetadataProvider()
+        self.autocomplete_engine = AutocompleteEngine(self.metadata_provider)
+        
         self.add_children_widget()
 
         self.sql_textbox_theme = ctk.get_appearance_mode().lower()
@@ -64,6 +72,13 @@ class TabContent(ctk.CTkFrame):
         else:
             self.sql_textbox_theme = "light"
         
+        # ربط Autocomplete بالـ SQL textbox
+        self.autocomplete = AutocompleteTextbox(
+            self.sql_textbox,
+            self.autocomplete_engine,
+            trigger_chars=".|{",
+            min_chars=0
+        )
 
         # Store the last executed SQL query
         self.last_sql_query = ""
@@ -121,7 +136,6 @@ class TabContent(ctk.CTkFrame):
         self.btn_frame.pack(fill="x", pady=5, padx=10)
         self.execute_btn.pack(side="left", padx=5)
         self.run_btn.pack(side="left", padx=5)
-        # TODO: Implement Generate SQL logic
         self.generate_sql_btn.pack(side="left", padx=5)
         self.results_section.pack(fill="both", expand=True, pady=5, padx=10)
         self.results_section.pack_propagate(False)
@@ -131,21 +145,22 @@ class TabContent(ctk.CTkFrame):
     def extract_gee_metadata(self, sql_query: str):
         """
         Extract Google Earth Engine metadata from SQL query.
-        Format: {gee:project|start_date|end_date|longitude|latitude|scale}
+        NEW FORMAT: {project|start_date|end_date|longitude|latitude|scale|dataset}
         """
         try:
-            # Pattern to match GEE query format
-            pattern = r'\{gee:([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^}]+)\}'
+            # Pattern: project|start|end|lon|lat|scale|dataset
+            pattern = r'\{([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^}]+)\}'
             match = re.search(pattern, sql_query)
             
             if match:
                 metadata = {
-                    'project': match.group(1),
-                    'start_date': match.group(2),
-                    'end_date': match.group(3),
-                    'longitude': float(match.group(4)),
-                    'latitude': float(match.group(5)),
-                    'scale': float(match.group(6))
+                    'project': match.group(1),           # Field 1: project
+                    'start_date': match.group(2),        # Field 2: start_date
+                    'end_date': match.group(3),          # Field 3: end_date
+                    'longitude': float(match.group(4)),  # Field 4: longitude
+                    'latitude': float(match.group(5)),   # Field 5: latitude
+                    'scale': float(match.group(6)),      # Field 6: scale
+                    'dataset': match.group(7)            # Field 7: dataset (LAST)
                 }
                 return metadata
             return None
@@ -236,7 +251,7 @@ class TabContent(ctk.CTkFrame):
             
             if not self.assistant:
                 # Define paths
-                ai_dir = os.path.join(os.getcwd(), "AI-Assisstance Feature")
+                ai_dir = os.path.join(os.getcwd(), "ai_assistant")
                 json_path = os.path.join(ai_dir, "GEE_datasets_augmented_threaded.json")
                 persist_dir = os.path.join(ai_dir, "chroma_db_v2")
                 
@@ -267,8 +282,6 @@ class TabContent(ctk.CTkFrame):
         self.error_section.set_error(f"AI Assistant Error: {error_message}")
         self.sql_textbox.delete("1.0", "end")
         self.generate_sql_btn.configure(state="normal")
-
-
 
     def copy_to_clipboard(self, text: str):
         # Copy the provided text to the clipboard
