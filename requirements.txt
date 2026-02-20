@@ -8,6 +8,7 @@ customtkinter==5.2.2
 cycler==0.12.1
 darkdetect==0.8.0
 earthengine-api==1.4.3
+folium
 fonttools==4.55.3
 google-api-core==2.24.0
 google-api-python-client==2.155.0
@@ -39,6 +40,7 @@ pyasn1==0.6.1
 pyasn1_modules==0.4.1
 pyparsing==3.2.0
 python-dateutil==2.9.0.post0
+python-dotenv
 pytz==2024.2
 requests==2.32.3
 rsa==4.9
@@ -57,4 +59,3 @@ langchain-chroma
 langchain-openai
 langchain-ollama
 langchain-nvidia-ai-endpoints
-python-dotenv

@@ -1,7 +1,11 @@
 from abc import ABC
 from enum import Enum
 import re
-from typing import Any, override
+from typing import final
+try:
+    from typing import override
+except ImportError:
+    from typing_extensions import override
 
 import pandas as pd
 from app.etl.data.base_data_types import (
