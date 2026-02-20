@@ -8,7 +8,6 @@ from app.etl.data.remote.gee.google_earth_api_data_collector import (
 
 class RemoteDataTypes(Enum):
     """Remote Types"""
-
     GEE = "gee"
 
 
@@ -16,17 +15,15 @@ class GEEDataExtractor(FieldPathBase, IExtractor):
     def __init__(self, path: str):
         FieldPathBase.__init__(self, path)
         self.path_parts = self.path.split("|")
-        # The first part is now treated as the satellite/dataset identifier
-        # GoogleEarthAPIDataCollector no longer requires a project id at init
-        self.gee_api_collector = GoogleEarthAPIDataCollector()
+        # path_parts[0] = project ID, path_parts[1] = dataset/satellite
+        self.gee_api_collector = GoogleEarthAPIDataCollector(projectname=self.path_parts[0])
 
     def extract(self) -> DataFrame:
-
         return self.gee_api_collector.collect(
-            satellite=self.path_parts[0],
-            start_date=self.path_parts[1],
-            end_date=self.path_parts[2],
-            longitude=float(self.path_parts[3]),
-            latitude=float(self.path_parts[4]),
-            scale=float(self.path_parts[5]),
+            satellite=self.path_parts[1],
+            start_date=self.path_parts[2],
+            end_date=self.path_parts[3],
+            longitude=float(self.path_parts[4]),
+            latitude=float(self.path_parts[5]),
+            scale=float(self.path_parts[6]),
         )
