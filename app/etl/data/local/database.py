@@ -1,6 +1,10 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import final, override
+from typing import final
+try:
+    from typing import override
+except ImportError:
+    from typing_extensions import override
 
 import sqlalchemy
 import pandas as pd

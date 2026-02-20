@@ -5,7 +5,6 @@ from app.etl.data.remote.gee.data_processor import DataProcessor
 
 class GoogleEarthAPIDataCollector:
     def __init__(self, projectname: str = None):
-        ee.Authenticate()
         # Initialize Earth Engine; project is optional now.
         if projectname:
             ee.Initialize(project=projectname)
